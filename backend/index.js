@@ -1,7 +1,10 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+
+// Load environment variables
+dotenv.config();
 
 const authRoutes = require("./api/routes/authRoutes");
 const boardRoutes = require("./api/routes/boardRoutes");
@@ -11,22 +14,15 @@ const taskRoutes = require("./api/routes/taskRoutes");
 const app = express();
 
 // Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 // MongoDB Connection
 mongoose.set("strictQuery", false);
-
 mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
-
-// CORS Setup
-const corsOptions = {
-  origin: "http://localhost:5173", // frontend URL
-};
-app.use(cors(corsOptions));
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // API Routes
 app.get("/", (req, res) => {
@@ -38,12 +34,17 @@ app.use("/api/board", boardRoutes);
 app.use("/api/column", columnRoutes);
 app.use("/api/task", taskRoutes);
 
-// View Engine and Static Files
-app.set("view engine", "ejs");
-app.use(express.static("./public"));
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Something went wrong!",
+    error: err.message,
+  });
+});
 
-// Server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

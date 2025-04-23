@@ -1,12 +1,22 @@
 const express = require("express");
 const router = express.Router();
-const { getBoard } = require("../controllers/boardController");
+const {
+  getBoard,
+  updateBoard,
+  deleteBoard,
+} = require("../controllers/boardController");
 const protect = require("../middleware/auth");
 
-// Apply middleware to all board routes
+// Apply auth middleware to all board routes
 router.use(protect);
 
-// GET /board - Get the user's board with columns and tasks
+// GET /board - Get user's board
 router.get("/", getBoard);
+
+// PUT /board - Update board
+router.put("/", updateBoard);
+
+// DELETE /board - Delete board
+router.delete("/", deleteBoard);
 
 module.exports = router;

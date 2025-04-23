@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -14,7 +15,7 @@ exports.signup = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ email }).session(session);
 
@@ -26,13 +27,11 @@ exports.signup = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create([{ email, password: hashedPassword }], {
-      session,
-    });
-
-    const board = await Board.create(
-      [{ user: user[0]._id, name: "My Board" }],
-      { session }
+    const user = await User.create(
+      [{ name, email, password: hashedPassword }],
+      {
+        session,
+      }
     );
 
     await session.commitTransaction();
@@ -40,11 +39,24 @@ exports.signup = async (req, res) => {
 
     const token = generateToken(user[0]._id);
 
-    return res.status(201).json({ token });
+    return res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      token,
+      user: {
+        id: user[0]._id,
+        name: user[0].name,
+        email: user[0].email,
+      },
+    });
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ message: "Signup failed", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Signup failed",
+      error: err.message,
+    });
   }
 };
 
@@ -53,19 +65,97 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    let user = await User.findOne({ email });
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide both email and password",
+      });
+    }
 
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    // Find user by email and explicitly select password
+    const user = await User.findOne({ email }).select("+password");
 
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
 
+    // Generate token
     const token = generateToken(user._id);
 
-    return res.json({ token });
-  } catch (err) {
-    res.status(500).json({ message: "Login failed", error: err.message });
+    // Remove password from user object
+    const userWithoutPassword = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    };
+
+    // Return response
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: userWithoutPassword,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Login failed",
+      error: error.message,
+    });
+  }
+};
+
+// Check if user is authenticated
+exports.isAuthenticated = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.json({
+        isAuthenticated: false,
+        message: "No token provided",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find user to ensure they still exist in database
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.json({
+        isAuthenticated: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      isAuthenticated: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    res.json({
+      isAuthenticated: false,
+      message: "Invalid token",
+    });
   }
 };

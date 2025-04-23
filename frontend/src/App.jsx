@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import Login from "./components/login";
+import Login from "./components/Login";
 import KanbanBoard from "./components/KanbanBoard";
 import Signup from "./components/Signup";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -12,10 +12,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route
-          path="/kanban"
+          path="/"
           element={
             <PrivateRoute>
               <KanbanBoard />

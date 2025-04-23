@@ -4,19 +4,23 @@ const {
   addTask,
   updateTask,
   deleteTask,
+  reorderTasks,
 } = require("../controllers/taskController");
 const protect = require("../middleware/auth");
 
-// Apply auth middleware
+// Apply auth middleware to all task routes
 router.use(protect);
 
-// POST /task – Add task to column
+// POST /task - Add new task
 router.post("/", addTask);
 
-// PATCH /task/:id – Update task
-router.patch("/:id", updateTask);
+// PUT /task/:taskId - Update task
+router.put("/:taskId", updateTask);
 
-// DELETE /task/:id – Delete task
-router.delete("/:id", deleteTask);
+// DELETE /task/:taskId - Delete task
+router.delete("/:taskId", deleteTask);
+
+// PUT /task/reorder - Reorder tasks
+router.put("/reorder", reorderTasks);
 
 module.exports = router;

@@ -2,40 +2,113 @@ const Board = require("../models/Board");
 const Column = require("../models/Column");
 const Task = require("../models/Task");
 
-// Get board with columns and tasks
+// Get user's board
 exports.getBoard = async (req, res) => {
   try {
-    const board = await Board.findOne({ user: req.user._id });
+    const board = await Board.findOne({ owner: req.user.id })
+      .populate({
+        path: "columns",
+        populate: {
+          path: "tasks",
+          populate: {
+            path: "assignedTo",
+            select: "name email",
+          },
+        },
+      })
+      .sort({ "columns.order": 1, "columns.tasks.order": 1 });
 
     if (!board) {
-      return res.status(404).json({ message: "Board not found" });
+      // Create a new board if none exists
+      const newBoard = await Board.create({
+        name: "My Board",
+        owner: req.user.id,
+      });
+
+      // Create default columns
+      const columns = await Column.create([
+        { title: "To Do", board: newBoard._id, order: 0 },
+        { title: "In Progress", board: newBoard._id, order: 1 },
+        { title: "Done", board: newBoard._id, order: 2 },
+      ]);
+
+      newBoard.columns = columns.map((col) => col._id);
+      await newBoard.save();
+
+      return res.json(newBoard);
     }
 
-    const columns = await Column.find({ board: board._id }).sort("order");
-
-    const tasks = await Task.find({
-      column: { $in: columns.map((c) => c._id) },
+    res.json(board);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching board",
+      error: error.message,
     });
+  }
+};
 
-    const columnsWithTasks = columns.map((column) => {
-      return {
-        ...column.toObject(),
-        tasks: tasks.filter(
-          (task) => task.column.toString() === column._id.toString()
-        ),
-      };
-    });
+// Update board
+exports.updateBoard = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const board = await Board.findOneAndUpdate(
+      { owner: req.user.id },
+      { name, description },
+      { new: true }
+    );
 
-    return res.json({
-      board: {
-        _id: board._id,
-        name: board.name,
-        columns: columnsWithTasks,
-      },
+    if (!board) {
+      return res.status(404).json({
+        success: false,
+        message: "Board not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Board updated successfully",
+      board,
     });
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch board", error: err.message });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating board",
+      error: error.message,
+    });
+  }
+};
+
+// Delete board
+exports.deleteBoard = async (req, res) => {
+  try {
+    const board = await Board.findOne({ owner: req.user.id });
+
+    if (!board) {
+      return res.status(404).json({
+        success: false,
+        message: "Board not found",
+      });
+    }
+
+    // Delete all tasks in the board's columns
+    await Task.deleteMany({ board: board._id });
+
+    // Delete all columns
+    await Column.deleteMany({ board: board._id });
+
+    // Delete the board
+    await board.remove();
+
+    res.json({
+      success: true,
+      message: "Board deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deleting board",
+      error: error.message,
+    });
   }
 };

@@ -33,7 +33,9 @@ function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
 
         // Set axios default Authorization header
-        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+        axios.defaults.headers = {
+          Authorization: `Bearer ${data.token}`,
+        };
 
         // Redirect to kanban board
         navigate("/");

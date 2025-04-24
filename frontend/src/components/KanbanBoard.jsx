@@ -25,6 +25,7 @@ const KanbanBoard = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activeTask, setActiveTask] = useState(null); // Track dragged task for overlay
+  const [loading, setLoading] = useState(false); // Loading state for async operations
 
   // Setup sensors for pointer-based dragging
   const sensors = useSensors(
@@ -44,6 +45,7 @@ const KanbanBoard = () => {
   async function handleAddColumn(e) {
     e.preventDefault();
     setMessage("");
+    setLoading(true);
     try {
       const { data } = await axios.post("/api/column", { title: colName });
       const newColumn = {
@@ -61,14 +63,18 @@ const KanbanBoard = () => {
     } catch (error) {
       console.error("Error adding column:", error);
       setMessage("❌ Failed to add column. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleAddTask(e) {
     e.preventDefault();
     setMessage("");
+    setLoading(true);
     if (!title || !columnId) {
       setMessage("❌ Please fill all fields.");
+      setLoading(false);
       return;
     }
     try {
@@ -97,13 +103,23 @@ const KanbanBoard = () => {
         error.response?.data || error.message
       );
       setMessage("❌ Failed to add task. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function getTasks() {
-    const { data } = await axios.get("/api/board");
-    if (data && Object.keys(data).length) {
-      setColumns(data.columns);
+    setLoading(true);
+    try {
+      const { data } = await axios.get("/api/board");
+      if (data && Object.keys(data).length) {
+        setColumns(data.columns);
+      }
+    } catch (error) {
+      console.error("Error fetching board:", error);
+      setMessage("❌ Failed to fetch board. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -191,6 +207,18 @@ const KanbanBoard = () => {
       id: column._id,
     });
 
+    const handleDeleteColumn = async () => {
+      setMessage("");
+      try {
+        await axios.delete(`/api/column/${column._id}`);
+        setColumns(columns.filter((col) => col._id !== column._id));
+        setMessage("✅ Column deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting column:", error);
+        setMessage("❌ Failed to delete column. Please try again.");
+      }
+    };
+
     return (
       <div
         ref={setNodeRef}
@@ -198,19 +226,25 @@ const KanbanBoard = () => {
         {...listeners}
         className="card shadow-sm border-0 h-100"
       >
-        <div className="card-header bg-primary text-white fw-bold text-center">
-          {column.title}
+        <div className="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+          <span>{column.title}</span>
+          <button
+            type="button"
+            className="btn-close btn-close-white"
+            aria-label="Delete"
+            onClick={handleDeleteColumn}
+          ></button>
         </div>
         <div
           className="card-body bg-white"
           style={{ minHeight: "100px", overflowY: "auto" }}
         >
           <SortableContext
-            items={column.tasks.map((task) => task._id)}
+            items={column?.tasks?.map((task) => task._id)}
             strategy={verticalListSortingStrategy}
           >
-            {column.tasks.length > 0 ? (
-              column.tasks.map((task) => (
+            {column?.tasks?.length > 0 ? (
+              column?.tasks?.map((task) => (
                 <SortableTask
                   key={task._id}
                   task={task}
@@ -307,12 +341,18 @@ const KanbanBoard = () => {
           Kanban Board
         </h2>
         <div className="col-auto d-flex align-items-center">
+          {loading && (
+            <div className="spinner-border text-primary me-3" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          )}
           <button
             className="btn btn-sm btn-primary me-2 px-3"
             type="button"
             data-bs-toggle="modal"
             data-bs-target="#colModal"
             onClick={() => setMessage("")}
+            disabled={loading}
           >
             Add Column
           </button>
@@ -322,6 +362,7 @@ const KanbanBoard = () => {
             data-bs-toggle="modal"
             data-bs-target="#taskModal"
             onClick={() => setMessage("")}
+            disabled={loading}
           >
             Add Task
           </button>
@@ -335,6 +376,7 @@ const KanbanBoard = () => {
               delete axios.defaults.headers.common["Authorization"];
               window.location.href = "/login";
             }}
+            disabled={loading}
           >
             Logout
           </button>

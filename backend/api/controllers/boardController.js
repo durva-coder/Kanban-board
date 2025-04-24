@@ -25,15 +25,7 @@ exports.getBoard = async (req, res) => {
         owner: req.user.id,
       });
 
-      // Create default columns
-      const columns = await Column.create([
-        { title: "To Do", board: newBoard._id, order: 0 },
-        { title: "In Progress", board: newBoard._id, order: 1 },
-        { title: "Done", board: newBoard._id, order: 2 },
-      ]);
-
-      newBoard.columns = columns.map((col) => col._id);
-      await newBoard.save();
+      // Do NOT create default columns on new board creation
 
       return res.json(newBoard);
     }

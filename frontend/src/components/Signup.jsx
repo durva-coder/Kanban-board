@@ -40,6 +40,9 @@ function Signup() {
 
       if (data.success) {
         localStorage.setItem("token", data.token);
+        axios.defaults.headers = {
+          Authorization: `Bearer ${data.token}`,
+        };
         navigate("/");
       }
     } catch (err) {

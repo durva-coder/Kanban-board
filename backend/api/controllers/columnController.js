@@ -116,7 +116,7 @@ exports.deleteColumn = async (req, res) => {
     await board.save();
 
     // Delete the column
-    await column.remove();
+    await Column.deleteOne({ _id: column._id });
 
     res.json({
       success: true,

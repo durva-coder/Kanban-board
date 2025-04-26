@@ -4,6 +4,8 @@
 
 This project is a Kanban board application with a backend API and a React frontend. The backend is built with Node.js, Express, and MongoDB, providing RESTful API endpoints for user authentication, board management, columns, and tasks. The frontend is a React application built with Vite, providing a user interface to interact with the Kanban board.
 
+Here is the deployed link for the project: https://kanban-board-main.netlify.app/
+
 ---
 
 ## Backend Setup

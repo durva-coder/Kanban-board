@@ -443,6 +443,7 @@ const KanbanBoard = () => {
                 value={colName}
                 onChange={(e) => setColName(e.target.value)}
                 required
+                autoFocus
               />
             </div>
           </div>
@@ -474,6 +475,7 @@ const KanbanBoard = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                autoFocus
               />
             </div>
 

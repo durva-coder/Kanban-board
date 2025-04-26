@@ -25,14 +25,9 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create(
-      [{ name, email, password: hashedPassword }],
-      {
-        session,
-      }
-    );
+    const user = await User.create([{ name, email, password }], {
+      session,
+    });
 
     await session.commitTransaction();
     session.endSession();
@@ -65,7 +60,8 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Input validation
+    console.log("Login attempt with:", email, password);
+
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -73,7 +69,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Find user by email and explicitly select password
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
@@ -83,8 +78,9 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
+
+    console.log("Password match:", isMatch);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -93,17 +89,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
-    // Remove password from user object
     const userWithoutPassword = {
       id: user._id,
       name: user.name,
       email: user.email,
     };
 
-    // Return response
     return res.status(200).json({
       success: true,
       message: "Login successful",

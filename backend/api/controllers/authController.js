@@ -60,8 +60,6 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("Login attempt with:", email, password);
-
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -79,8 +77,6 @@ exports.login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
-    console.log("Password match:", isMatch);
 
     if (!isMatch) {
       return res.status(401).json({

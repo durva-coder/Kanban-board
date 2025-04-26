@@ -4,6 +4,15 @@ import axios from "axios";
 
 function Login() {
   const navigate = useNavigate();
+
+  // Redirect immediately if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -58,7 +67,7 @@ function Login() {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (data.success) {
-            navigate("/kanban");
+            navigate("/");
           }
         }
       } catch (err) {

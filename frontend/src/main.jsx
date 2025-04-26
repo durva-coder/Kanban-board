@@ -10,9 +10,13 @@ axios.defaults.baseURL = BACKEND_URL;
 const token = localStorage.getItem("token");
 
 if (token) {
-  axios.defaults.headers = {
-    Authorization: `Bearer ${token}`,
-  };
+  if (!axios.defaults.headers) {
+    axios.defaults.headers = {};
+  }
+  if (!axios.defaults.headers.common) {
+    axios.defaults.headers.common = {};
+  }
+  axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 }
 
 createRoot(document.getElementById("root")).render(

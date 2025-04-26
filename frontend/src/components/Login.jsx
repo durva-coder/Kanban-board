@@ -42,9 +42,7 @@ function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
 
         // Set axios default Authorization header
-        axios.defaults.headers = {
-          Authorization: `Bearer ${data.token}`,
-        };
+        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 
         // Redirect to kanban board
         navigate("/");
@@ -105,6 +103,7 @@ function Login() {
               onChange={handleChange}
               required
               disabled={isLoading}
+              autoFocus
             />
             <div className="form-text">We'll never share your email.</div>
           </div>

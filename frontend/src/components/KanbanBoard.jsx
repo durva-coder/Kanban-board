@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
 import axios from "axios";
 import {
@@ -8,6 +9,7 @@ import {
   useSensors,
   PointerSensor,
   DragOverlay,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -138,7 +140,18 @@ const KanbanBoard = () => {
     if (!over) return;
 
     const taskId = active.id;
-    const newColumnId = over.id;
+    let newColumnId = over.id;
+
+    // If over.id is a task id, find the column containing that task
+    const isOverTask = columns.some((col) =>
+      col.tasks.some((task) => task._id === over.id)
+    );
+    if (isOverTask) {
+      const overTaskColumn = columns.find((col) =>
+        col.tasks.some((task) => task._id === over.id)
+      );
+      newColumnId = overTaskColumn._id;
+    }
 
     // Find the source column and task
     const sourceColumn = columns.find((col) =>
@@ -203,7 +216,8 @@ const KanbanBoard = () => {
 
   // Droppable Column Component
   const DroppableColumn = ({ column }) => {
-    const { setNodeRef, attributes, listeners } = useSortable({
+    // Use useDroppable to make column a droppable container but not draggable
+    const { setNodeRef } = useDroppable({
       id: column._id,
     });
 
@@ -220,12 +234,7 @@ const KanbanBoard = () => {
     };
 
     return (
-      <div
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className="card shadow-sm border-0 h-100"
-      >
+      <div ref={setNodeRef} className="card shadow-sm border-0 h-100">
         <div className="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
           <span>{column.title}</span>
           <button
@@ -331,6 +340,8 @@ const KanbanBoard = () => {
     );
   };
 
+  const navigate = useNavigate();
+
   return (
     <div
       className="container-fluid bg-light py-5"
@@ -372,8 +383,14 @@ const KanbanBoard = () => {
             onClick={() => {
               localStorage.removeItem("token");
               localStorage.removeItem("user");
-              // Clear axios default Authorization header
-              delete axios.defaults.headers.common["Authorization"];
+              // Clear axios default Authorization header safely
+              if (!axios.defaults.headers) {
+                axios.defaults.headers = {};
+              }
+              if (!axios.defaults.headers.common) {
+                axios.defaults.headers.common = {};
+              }
+              axios.defaults.headers.common["Authorization"] = null;
               window.location.href = "/login";
             }}
             disabled={loading}

@@ -1,62 +1,71 @@
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 
 function Signup() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleValueChange(e) {
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setUser((prev) => ({ ...prev, [name]: value }));
-  }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!user.name || !user.email || !user.password || !user.confirmPassword) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    if (user.password !== user.confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
+    setIsLoading(true);
     try {
       const { data } = await axios.post("/api/auth/signup", {
-        name: user.name,
-        email: user.email,
-        password: user.password,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
       });
 
       if (data.success) {
-        localStorage.setItem("token", data.token);
-        axios.defaults.headers = {
-          Authorization: `Bearer ${data.token}`,
-        };
-        navigate("/");
+        // Redirect to login page after successful signup
+        navigate("/login");
+      } else {
+        setError(data.message || "Signup failed. Please try again.");
       }
     } catch (err) {
       setError(
         err.response?.data?.message || "Signup failed. Please try again."
       );
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
       <div
         className="card p-4 shadow-sm"
-        style={{ width: "100%", maxWidth: "450px" }}
+        style={{ width: "100%", maxWidth: "400px" }}
       >
         <h3 className="text-center mb-4">Sign Up</h3>
         {error && (
@@ -67,52 +76,53 @@ function Signup() {
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">
-              Full Name
+              Name
             </label>
             <input
               type="text"
               className="form-control"
               id="name"
-              placeholder="Enter your full name"
               name="name"
-              value={user.name}
-              onChange={handleValueChange}
+              placeholder="Enter your name"
+              value={formData.name}
+              onChange={handleChange}
               required
+              disabled={isLoading}
+              autoFocus
             />
           </div>
-
           <div className="mb-3">
-            <label htmlFor="signupEmail" className="form-label">
+            <label htmlFor="email" className="form-label">
               Email address
             </label>
             <input
               type="email"
               className="form-control"
-              id="signupEmail"
-              placeholder="Enter your email"
+              id="email"
               name="email"
-              value={user.email}
-              onChange={handleValueChange}
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
               required
+              disabled={isLoading}
             />
           </div>
-
           <div className="mb-3">
-            <label htmlFor="signupPassword" className="form-label">
+            <label htmlFor="password" className="form-label">
               Password
             </label>
             <input
               type="password"
               className="form-control"
-              id="signupPassword"
-              placeholder="Create a password"
+              id="password"
               name="password"
-              value={user.password}
-              onChange={handleValueChange}
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
               required
+              disabled={isLoading}
             />
           </div>
-
           <div className="mb-3">
             <label htmlFor="confirmPassword" className="form-label">
               Confirm Password
@@ -121,21 +131,36 @@ function Signup() {
               type="password"
               className="form-control"
               id="confirmPassword"
-              placeholder="Confirm your password"
               name="confirmPassword"
-              value={user.confirmPassword}
-              onChange={handleValueChange}
+              placeholder="Confirm your password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
               required
+              disabled={isLoading}
             />
           </div>
-
-          <button type="submit" className="btn btn-primary w-100">
-            Sign Up
+          <button
+            type="submit"
+            className="btn btn-primary w-100"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                Signing up...
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
         <div className="text-center mt-3">
           <small>
-            Already have an account? <Link to="/">Login</Link>
+            Already have an account? <Link to="/login">Login</Link>
           </small>
         </div>
       </div>
